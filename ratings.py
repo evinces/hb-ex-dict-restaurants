@@ -1,152 +1,202 @@
 """Restaurant rating lister."""
-from sys import argv
-from random import choice
 from os import listdir
-from os.path import isfile
+from random import choice
+from sys import argv
 
 
-def parse_file(filename):
-    restaurant_ratings = {}
+def add_new_restaurant(ratings):
+    """Prompt user to add new restaurant rating"""
 
-    input_file = open(filename)
-    for line in input_file:
-        line = line.strip()
-        word = line.split(":")
-        restaurant_name = word[0]
-        rating = word[1]
-        restaurant_ratings[restaurant_name] = rating
+    print "Enter a restaurant name:"
+    new_name = raw_input("> ")
 
-    input_file.close()
-    return restaurant_ratings
+    print "Enter a rating:"
+    ratings[new_name] = get_rating()
+
+    print_rating(new_name, ratings[new_name])
 
 
-def print_sorted_ratings(restaurant_ratings):
-    sorted_ratings = sorted(restaurant_ratings.items())
+def get_int():
+    """Get an integer from the user"""
 
-    for restaurant_name, rating in sorted_ratings:
-        print "{} is rated at {}.".format(restaurant_name, rating)
-
-
-def add_new_restaurant(restaurant_ratings):
-    new_name = raw_input("Enter a restaurant name: ")
-
-    new_rating = get_rating()
-
-    restaurant_ratings[new_name] = new_rating
+    while True:
+        try:
+            choice = int(raw_input("> "))
+            return choice
+        except ValueError:
+            print "Error: Enter a number"
 
 
-def update_random_restaurant(restaurant_ratings):
-    random_restaurant = choice(restaurant_ratings.keys())
-    print "{} is rated at {}.".format(random_restaurant,
-                                      restaurant_ratings[random_restaurant])
-    new_rating = get_rating()
-    restaurant_ratings[random_restaurant] = new_rating
+def get_int_in_range(upper_bound):
+    """Get an integer within range 1 and upper_bound inclusive"""
 
-
-def update_restaurant(restaurant_ratings):
-    restaurant_list = sorted(restaurant_ratings.keys())
-    for index, name in enumerate(restaurant_list):
-        print "{}. {}".format(index + 1, name)
-    restaurant = int(raw_input("Choose a restaurant to update: "))
-    if restaurant > 0 and restaurant < len(restaurant_list) + 1:
-        new_rating = get_rating()
-        restaurant_ratings[restaurant_list[restaurant - 1]] = new_rating
-    else:
-        print "No such restaurant."
+    while True:
+        input_int = get_int()
+        if 1 <= input_int <= upper_bound:
+            return input_int
+        else:
+            print "Error: Enter a value between 1 and {}".format(upper_bound)
 
 
 def get_rating():
-    while True:
-        new_rating = int(raw_input("Enter a rating: "))
-        if new_rating > 5 or new_rating < 1:
-            print "Enter a rating between 1 and 5."
-        else:
-            break
-    return new_rating
+    """Get an integer between 1 and 5 inclusive"""
+
+    return get_int_in_range(5)
 
 
-def choose_file():
+def get_new_file():
+    """Prompt user to select a new .txt file from local dir"""
+
     file_list = listdir(".")
-    index = 1
-
     txt_list = []
 
-    for filename in file_list:
-        if filename[-4:] == ".txt":
-            txt_list.append(filename)
-            print "{}. {}".format(index, filename)
-            index += 1
+    for file_name in file_list:
+        if file_name[-4:] == ".txt":
+            txt_list.append(file_name)
 
-    while True:
-        input_file = int(raw_input("Which file? "))
+    for index, name in enumerate(txt_list):
+        print "  {}. {}".format(index + 1, name)
 
-        if isfile(txt_list[input_file - 1]):
-            return txt_list[input_file - 1]
-        else:
-            print "Invalid file name."
+    print ""
+    print "Enter a file selection:"
+    file_selection = get_int_in_range(len(txt_list)) - 1
+    return txt_list[file_selection]
+
+
+def parse_file(file_name, ratings={}):
+    """Parse data from file_name, store in ratings_dict"""
+
+    file_in = open(file_name)
+    for line in file_in:
+        line = line.strip()
+        words = line.split(":")
+        ratings[words[0]] = words[1]
+
+    file_in.close()
+    return ratings
 
 
 def print_highest_rated():
+    """Load all .txt files in local dir and print the highest rated"""
+
+    all_ratings = {}
+
     file_list = listdir(".")
+    for file_name in file_list:
+        if file_name[-4:] == ".txt":
+            all_ratings = parse_file(file_name, all_ratings)
 
-    all_restaurants = {}
+    all_ratings = sorted(all_ratings.items(), key=lambda x: x[1], reverse=True)
+    highest = all_ratings[0][1]
 
-    for filename in file_list:
-        if filename[-4:] == ".txt":
-            input_file = open(filename)
-            for line in input_file:
-                line = line.strip()
-                word = line.split(":")
-                restaurant_name = word[0]
-                rating = word[1]
-                all_restaurants[restaurant_name] = rating
-            input_file.close()
-    all_restaurants = sorted(all_restaurants.items(), key=lambda x: x[1], reverse=True)
-
-    highest = all_restaurants[0][1]
-
-    for restaurant_name, rating in all_restaurants:
-        if rating != highest:
-            break
+    for name, rating in all_ratings:
+        if rating == highest:
+            print_rating(name, rating)
         else:
-            print "{} is rated at {}.".format(restaurant_name, rating)
+            break
 
-if len(argv) < 2:
-    filename = choose_file()
+
+def print_sorted_ratings(ratings):
+    """Print alphabetized list of restaurants followed by their rating"""
+
+    for name, rating in sorted(ratings.items()):
+        print_rating(name, rating)
+
+
+def print_rating(name, rating):
+    """Print restaurant followed by rating"""
+
+    print "     {} is rated: {}".format(name, rating)
+
+
+def update_random_restaurant(ratings):
+    """Prompt user to rate random restaurant"""
+
+    rand_name = choice(ratings.keys())
+    print_rating(rand_name, ratings[rand_name])
+
+    print ""
+    print "Enter a new rating:"
+    ratings[rand_name] = get_rating()
+
+    print ""
+    print_rating(rand_name, ratings[rand_name])
+
+
+def update_restaurant(ratings):
+    """Prompt user to select a restaurant to update"""
+
+    sorted_names = sorted(ratings.keys())
+    for index, name in enumerate(sorted_names):
+        print "     {}. {}".format(index + 1, name)
+
+    print ""
+    print "Enter a restaurant selection:"
+    user_choice = sorted_names[get_int_in_range(len(sorted_names)) - 1]
+    print "Enter a rating:"
+    ratings[user_choice] = get_rating()
+
+    print ""
+    print_rating(user_choice, ratings[user_choice])
+
+
+line_width = 80
+
+title = """{}
+ Restaurant Ratings App
+{}""".format("=" * line_width, "=" * line_width)
+
+menu = """
+  1. See all ratings in this file
+  2. Add a restaurant to this file
+  3. Update a random restaurant
+  4. Update a specified restaurant
+  5. Choose another ratings file
+  6. See highest rated restaurant across all files
+  7. See this menu again
+  8. Quit
+"""
+
+print ""
+print title
+
+if len(argv) > 1:
+    file_name = argv[1]
 else:
-    filename = argv[1]
+    file_name = get_new_file()
 
-restaurants = parse_file(filename)
+ratings = parse_file(file_name)
 
+print menu
 while True:
-    print "----------------------"
-    print "Restaurant Ratings App"
+    print "-" * line_width
+    user_choice = get_int_in_range(8)
+    print "-" * line_width
     print ""
-    print "1. See all ratings"
-    print "2. Add a restaurant"
-    print "3. Update random restaurant"
-    print "4. Choose restaurant to update"
-    print "5. Choose another file"
-    print "6. See highest rated restaurant"
-    print "7. Quit"
-    print ""
-    print "----------------------"
-    print ""
-    user_choice = raw_input("> ")
-    print ""
-    if user_choice == "1":
-        print_sorted_ratings(restaurants)
-    elif user_choice == "2":
-        add_new_restaurant(restaurants)
-    elif user_choice == "3":
-        update_random_restaurant(restaurants)
-    elif user_choice == "4":
-        update_restaurant(restaurants)
-    elif user_choice == "5":
-        filename = choose_file()
-        restaurants = parse_file(filename)
-    elif user_choice == "6":
+
+    if user_choice == 1:
+        print_sorted_ratings(ratings)
+
+    elif user_choice == 2:
+        add_new_restaurant(ratings)
+
+    elif user_choice == 3:
+        update_random_restaurant(ratings)
+
+    elif user_choice == 4:
+        update_restaurant(ratings)
+
+    elif user_choice == 5:
+        file_name = get_new_file()
+        ratings = parse_file(file_name)
+
+    elif user_choice == 6:
         print_highest_rated()
-    else:
+
+    elif user_choice == 7:
+        print menu
+
+    elif user_choice == 8:
         break
+
     print ""
